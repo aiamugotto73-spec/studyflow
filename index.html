@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f8fafc"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="StudyFlow">
+<link rel="manifest" href="manifest.webmanifest"><title>StudyFlow | 受験勉強カレンダー</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;color:#182336;background:#f5f7fb;font-size:15px}
+*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit}button{cursor:pointer}
+.shell{max-width:620px;margin:auto;min-height:100dvh;background:#fff;padding-bottom:90px}
+header{padding:22px 20px 12px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:25px;font-weight:800;letter-spacing:-.9px}.logo span{color:#387cf5}.sub{font-size:12px;color:#8993a5;margin-top:4px}
+.iconbtn{border:1px solid #e6eaf1;border-radius:13px;background:white;padding:10px 13px;color:#43516a}
+main{padding:0 18px}.card{border:1px solid #e9edf4;border-radius:19px;padding:16px;margin:12px 0;background:#fff;box-shadow:0 4px 20px #1b2b4810}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.muted{color:#8792a3;font-size:12px}.heading{font-weight:750;font-size:17px}
+.week,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.week{text-align:center;color:#929baa;font-size:12px;margin:15px 0 9px}
+.day{border:0;background:transparent;border-radius:12px;min-height:55px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#25324b}
+.day.selected{background:#eaf2ff;color:#2369dd;font-weight:800}.day.today:not(.selected){outline:1px solid #b6cef9}.day.out{color:#c9cfd9}.dots{display:flex;gap:3px;min-height:5px}.dot{width:5px;height:5px;border-radius:50%;background:#3c80f5}
+.primary{background:#397df5;color:white;border:0;border-radius:13px;padding:12px 16px;font-weight:700}.secondary{background:#eff4ff;color:#3373e5;border:0;border-radius:12px;padding:10px 13px;font-weight:650}
+.small{font-size:12px;padding:8px 10px}.task{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid #f0f2f6}.task:last-child{border:0}
+.task input{width:20px;height:20px;accent-color:#397df5}.task .body{flex:1;min-width:0}.task .name{font-weight:650}.task.done .name{text-decoration:line-through;color:#9aa5b3}
+.tag{font-size:11px;padding:4px 8px;border-radius:7px;background:#f0f5ff;color:#3976dd;white-space:nowrap}
+.bar{height:9px;border-radius:8px;background:#edf1f7;overflow:hidden}.bar>div{height:100%;background:#397df5;border-radius:8px;transition:width .2s}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(620px,100%);display:grid;grid-template-columns:repeat(3,1fr);padding:9px 6px calc(9px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #e8edf5;z-index:5}
+.nav button{border:0;background:transparent;color:#8994a5;padding:8px;font-size:12px}.nav button.active{color:#3578ed;font-weight:750}.nav b{display:block;font-size:22px;margin-bottom:2px}
+.empty{text-align:center;color:#a0aaba;padding:24px 0}.book{padding:15px 0;border-bottom:1px solid #eef1f5}.book:last-child{border:0}
+.overlay{position:fixed;inset:0;background:#15233c66;display:none;align-items:flex-end;justify-content:center;z-index:10}
+.overlay.show{display:flex}.sheet{background:white;border-radius:23px 23px 0 0;width:min(620px,100%);padding:23px 20px calc(22px + env(safe-area-inset-bottom));max-height:90dvh;overflow:auto}
+label{display:block;font-size:12px;color:#627087;font-weight:650;margin:13px 0 6px}
+input:not([type=checkbox]),select,textarea{width:100%;padding:12px;border:1px solid #dce3ed;border-radius:11px;background:#fff;color:#243249;min-width:0}
+.formrow{display:grid;grid-template-columns:1fr 1fr;gap:12px}.actions{display:flex;gap:8px;margin-top:20px}.actions button{flex:1}
+.danger{border:0;background:#fff0f0;color:#d64242;padding:10px 13px;border-radius:11px}
+.note{font-size:12px;color:#8b96a7;line-height:1.7}
+.countdown{border-color:#dce9ff;background:linear-gradient(145deg,#f4f8ff,#fff)}
+.exam-name{font-weight:750;font-size:15px}
+.exam-days{font-size:39px;line-height:1.1;font-weight:850;letter-spacing:-1.5px;color:#3377e9}
+.exam-days small{font-size:15px;font-weight:650;letter-spacing:0;color:#64748b}
+.exam-item{padding:12px 0;border-bottom:1px solid #edf1f7}
+.exam-item:last-child{border-bottom:0}
+.exam-dot{width:6px;height:6px;border-radius:50%;background:#f29a42}
+</style></head><body><div class="shell"><header><div><div class="logo">Study<span>Flow</span></div><div class="sub">今日の一歩が、合格につながる。</div></div><button class="iconbtn" id="todayBtn">今日</button></header>
+<main id="main"></main><nav class="nav"><button data-tab="calendar" class="active"><b>▦</b>カレンダー</button><button data-tab="books"><b>▤</b>参考書</button><button data-tab="settings"><b>⚙</b>データ管理</button></nav></div>
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+<script>
+(()=>{'use strict';
+const KEY='studyflow-v1',subjects=['英語','国語','世界史','小論文','その他'];
+const colors={'英語':'#397df5','国語':'#ee8d58','世界史':'#33ad92','小論文':'#a077e6','その他':'#8895a9'};
+const pad=n=>String(n).padStart(2,'0'),iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,today=()=>iso(new Date());
+const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+let data;try{data=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!data||!Array.isArray(data.tasks)||!Array.isArray(data.books))data={tasks:[],books:[]};
+if(!Array.isArray(data.exams))data.exams=[];
+let tab='calendar',selected=today(),month=new Date().getMonth(),year=new Date().getFullYear();
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){alert('保存できませんでした。ブラウザのストレージ設定を確認してください。')}};
+const $=id=>document.getElementById(id),dateText=s=>{let [y,m,d]=s.split('-');return `${+m}月${+d}日`};
+const dateNumber=s=>{const [y,m,d]=s.split('-').map(Number);return Date.UTC(y,m-1,d)};
+const daysUntil=s=>Math.round((dateNumber(s)-dateNumber(today()))/86400000);
+const fullDate=s=>{const [y,m,d]=s.split('-').map(Number);return `${y}年${m}月${d}日`};
+function examBanner(){
+ const future=data.exams.filter(e=>e.date>=today()).sort((a,b)=>a.date.localeCompare(b.date));
+ const pinned=future.find(e=>e.pinned);
+ const target=pinned||future[0];
+ if(!target)return `<section class="card countdown"><div class="row"><div><div class="heading">試験までのカウントダウン</div><div class="muted" style="margin-top:5px">試験日を登録すると、ここに残り日数が表示されます</div></div><button class="secondary small" id="manageExams">＋ 登録</button></div></section>`;
+ const remaining=daysUntil(target.date);
+ return `<section class="card countdown"><div class="row"><div class="exam-name">${safe(target.name)}</div><button class="secondary small" id="manageExams">試験日を管理</button></div><div class="exam-days" style="margin:12px 0 5px">${remaining}<small> 日</small></div><div class="muted">${remaining===0?'今日が試験日！':'試験本番まで'} · ${fullDate(target.date)}${target.pinned?' · 固定表示':''}</div>${future.length>1?`<div class="muted" style="margin-top:9px">ほかに${future.length-1}件の試験を登録中</div>`:''}</section>`;
+}
+function attachExamBanner(){const b=$('manageExams');if(b)b.onclick=examList}
+
+function render(){
+ document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+ if(tab==='calendar')renderCalendar();else if(tab==='books')renderBooks();else renderSettings();
+}
+function occurs(t,date){
+ if(!t.repeat||t.repeat==='none')return t.date===date;
+ if(date<t.date||(t.until&&date>t.until)||(t.skipped||[]).includes(date))return false;
+ const dow=new Date(dateNumber(date)).getUTCDay();
+ if(t.repeat==='daily')return true;
+ if(t.repeat==='weekdays')return dow>=1&&dow<=5;
+ if(t.repeat==='weekly')return dow===new Date(dateNumber(t.date)).getUTCDay();
+ return false;
+}
+function tasksFor(date){return data.tasks.filter(t=>occurs(t,date)).map(t=>({...t,occurrence:date,done:t.repeat&&t.repeat!=='none'?(t.doneDates||[]).includes(date):t.done}));}
+function renderCalendar(){
+ const first=new Date(year,month,1),offset=first.getDay(),count=new Date(year,month+1,0).getDate();
+ const cells=Array.from({length:Math.ceil((offset+count)/7)*7},(_,i)=>{let day=i-offset+1,valid=day>=1&&day<=count,key=valid?`${year}-${pad(month+1)}-${pad(day)}`:'',n=key?tasksFor(key).length:0,hasExam=data.exams.some(e=>e.date===key);
+ return `<button class="day ${valid?'':'out'} ${key===selected?'selected':''} ${key===today()?'today':''}" ${valid?`data-day="${key}"`:'disabled'}><span>${valid?day:''}</span><div class="dots">${n?`<i class="dot"></i>${n>1?'<i class="dot"></i>':''}`:''}${hasExam?'<i class="exam-dot"></i>':''}</div></button>`}).join('');
+ const tasks=tasksFor(selected).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+ const done=tasks.filter(t=>t.done).length,percent=tasks.length?Math.round(done/tasks.length*100):0;
+ $('main').innerHTML=`${examBanner()}<section class="card"><div class="row"><button class="iconbtn" data-shift="-1">‹</button><div class="heading">${year}年 ${month+1}月</div><button class="iconbtn" data-shift="1">›</button></div><div class="week">${['日','月','火','水','木','金','土'].map(s=>`<span>${s}</span>`).join('')}</div><div class="days">${cells}</div></section>
+ <section class="card"><div class="row"><div><div class="heading">${dateText(selected)}の勉強</div><div class="muted">${tasks.length}件の予定</div></div><button class="primary small" id="addTask">＋ 予定追加</button></div>
+ <div>${data.exams.filter(e=>e.date===selected).map(e=>`<div class="task"><span style="font-size:19px">🎯</span><div class="body"><div class="name">${safe(e.name)}</div><div class="muted">試験日</div></div><button class="iconbtn small" data-exam-edit="${safe(e.id)}">編集</button></div>`).join("")}${tasks.length?tasks.map(t=>`<div class="task ${t.done?'done':''}"><input type="checkbox" data-check="${safe(t.id)}" data-occurrence="${safe(t.occurrence)}" ${t.done?'checked':''} aria-label="完了"><div class="body" data-edit-task="${safe(t.id)}"><div class="name">${safe(t.title)}</div><div class="muted">${safe(t.time||'時間未設定')} · ${safe(t.note||'メモなし')}</div></div><span class="tag" style="background:${colors[t.subject]||colors['その他']}18;color:${colors[t.subject]||colors['その他']}">${safe(t.subject)}</span><button class="iconbtn small" data-edit-task="${safe(t.id)}">編集</button></div>`).join(''):'<div class="empty">予定はまだありません。<br>「＋ 予定追加」から始めよう。</div>'}</div>
+ <div class="row" style="margin:18px 0 9px"><span class="muted">今日の達成率</span><strong>${percent}%</strong></div><div class="bar"><div style="width:${percent}%"></div></div></section>
+ <p class="note">予定はこの端末のブラウザ内に保存されます。大切なデータは「データ管理」からバックアップしてください。</p>`;
+ attachExamBanner();
+ document.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selected=b.dataset.day;render()});
+ document.querySelectorAll('[data-shift]').forEach(b=>b.onclick=()=>{const d=new Date(year,month+Number(b.dataset.shift),1);year=d.getFullYear();month=d.getMonth();render()});
+ $('addTask').onclick=()=>taskForm();
+ document.querySelectorAll('[data-check]').forEach(b=>b.onchange=()=>{const t=data.tasks.find(t=>t.id===b.dataset.check);if(t){if(t.repeat&&t.repeat!=='none'){t.doneDates=Array.isArray(t.doneDates)?t.doneDates:[];t.doneDates=t.doneDates.filter(d=>d!==b.dataset.occurrence);if(b.checked)t.doneDates.push(b.dataset.occurrence)}else t.done=b.checked;save();render()}});
+ document.querySelectorAll('[data-edit-task]').forEach(b=>b.onclick=()=>taskForm(b.dataset.editTask));
+ document.querySelectorAll('[data-exam-edit]').forEach(b=>b.onclick=()=>examForm(b.dataset.examEdit));
+}
+function renderBooks(){
+ $('main').innerHTML=`<section class="card"><div class="row"><div><div class="heading">参考書の進捗</div><div class="muted">終わりまであとどれくらい？</div></div><button class="primary small" id="addBook">＋ 参考書追加</button></div>
+ ${data.books.length?data.books.map(b=>{let pct=Math.round(b.current/b.total*100);return `<div class="book"><div class="row"><div><strong>${safe(b.name)}</strong><div class="muted">${safe(b.subject)} · ${b.current} / ${b.total} ページ</div></div><button class="iconbtn small" data-edit-book="${safe(b.id)}">編集</button></div><div class="bar" style="margin-top:12px"><div style="width:${pct}%"></div></div><div class="muted" style="text-align:right;margin-top:6px">${pct}%</div></div>`}).join(''):'<div class="empty">参考書を登録すると、進捗を管理できます。</div>'}</section>`;
+ $('addBook').onclick=()=>bookForm();
+ document.querySelectorAll('[data-edit-book]').forEach(b=>b.onclick=()=>bookForm(b.dataset.editBook));
+}
+function renderSettings(){
+ $('main').innerHTML=`<section class="card"><div class="heading">データ管理</div><p class="note">機種変更・Safariのデータ削除に備えて、定期的にバックアップを保存してください。</p><button class="primary" id="export">バックアップを保存</button><label>バックアップから復元（JSON）</label><input id="import" type="file" accept=".json,application/json"><p class="note">復元すると現在の予定と参考書が置き換わります。</p></section><section class="card"><div class="heading">このアプリについて</div><p class="note">StudyFlow v2.1 / 完全ローカル保存。AI機能・クラウド同期は未搭載です。外部サーバーに勉強記録を送信しません。</p></section>`;
+ $('export').onclick=()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download=`studyflow-backup-${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+ $('import').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!Array.isArray(x.tasks)||!Array.isArray(x.books))throw Error();if(!confirm('現在のデータをバックアップの内容で置き換えますか？'))return;data={tasks:x.tasks,books:x.books,exams:Array.isArray(x.exams)?x.exams:[]};save();render();alert('復元しました')}catch(err){alert('正しいバックアップファイルではありません')}};
+}
+function examList(){
+ const sorted=[...data.exams].sort((a,b)=>a.date.localeCompare(b.date));
+ openSheet(`<div class="row"><div class="heading">試験日の管理</div><button class="iconbtn" data-close>✕</button></div>
+ <p class="note">直近の試験を自動表示します。「固定表示」を選ぶと、その試験を優先します。</p>
+ <button class="primary" id="newExam" style="width:100%">＋ 試験日を追加</button>
+ <div style="margin-top:13px">${sorted.length?sorted.map(e=>`<div class="exam-item row"><div><strong>${safe(e.name)}</strong><div class="muted">${fullDate(e.date)} · ${daysUntil(e.date)>=0?`あと${daysUntil(e.date)}日`:'終了'}${e.pinned?' · 固定表示':''}</div></div><button class="iconbtn small" data-edit-exam="${safe(e.id)}">編集</button></div>`).join(''):'<div class="empty">まだ試験日はありません。</div>'}</div>`);
+ $('newExam').onclick=()=>examForm();
+ document.querySelectorAll('[data-edit-exam]').forEach(b=>b.onclick=()=>examForm(b.dataset.editExam));
+}
+function examForm(id){
+ const e=data.exams.find(x=>x.id===id)||{name:'',date:today(),pinned:false};
+ openSheet(`<div class="row"><div class="heading">${id?'試験日を編集':'試験日を追加'}</div><button class="iconbtn" data-close>✕</button></div>
+ <form id="examForm"><label>試験名 *</label><input name="name" maxlength="100" required placeholder="例：大学入学共通テスト" value="${safe(e.name)}">
+ <label>試験日 *</label><input name="date" type="date" required value="${safe(e.date)}">
+ <label style="display:flex;align-items:center;gap:10px;font-size:14px"><input type="checkbox" name="pinned" ${e.pinned?'checked':''} style="width:20px;height:20px">この試験をカウントダウンに固定表示する</label>
+ <div class="actions"><button class="primary" type="submit">保存する</button>${id?'<button class="danger" type="button" id="deleteExam">削除</button>':''}<button class="secondary" type="button" id="backExams">戻る</button></div></form>`);
+ $('backExams').onclick=examList;
+ $('examForm').onsubmit=ev=>{
+  ev.preventDefault();const f=new FormData(ev.target),name=String(f.get('name')).trim(),date=String(f.get('date')),pinned=f.has('pinned');
+  if(!name||!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+  if(pinned)data.exams.forEach(x=>x.pinned=false);
+  const obj={id:id||uid(),name,date,pinned};
+  if(id)data.exams=data.exams.map(x=>x.id===id?obj:x);else data.exams.push(obj);
+  save();closeSheet();render();
+ };
+ if(id)$('deleteExam').onclick=()=>{if(confirm('この試験日を削除しますか？')){data.exams=data.exams.filter(x=>x.id!==id);save();closeSheet();render()}};
+}
+function openSheet(content){$('sheet').innerHTML=content;$('overlay').classList.add('show');$('sheet').querySelector('[data-close]').onclick=closeSheet}
+function closeSheet(){$('overlay').classList.remove('show')}
+$('overlay').onclick=e=>{if(e.target===$('overlay'))closeSheet()};
+const opts=(arr,val)=>arr.map(s=>`<option value="${safe(s)}" ${s===val?'selected':''}>${safe(s)}</option>`).join('');
+function taskForm(id){
+ const t=data.tasks.find(t=>t.id===id)||{date:selected,time:'',subject:'英語',title:'',note:'',done:false,repeat:'none',until:''};
+ openSheet(`<div class="row"><div class="heading">${id?'予定を編集':'予定を追加'}</div><button class="iconbtn" data-close>✕</button></div><form id="taskForm">
+ <label>予定名 *</label><input name="title" maxlength="100" required placeholder="例：英単語 1〜100" value="${safe(t.title)}">
+ <div class="formrow"><div><label>日付 *</label><input name="date" type="date" required value="${safe(t.date)}"></div><div><label>開始時刻（任意）</label><input name="time" type="time" value="${safe(t.time)}"></div></div>
+ <label>科目</label><select name="subject">${opts(subjects,t.subject)}</select>
+ <label>繰り返し</label><select name="repeat" id="repeatSelect"><option value="none" ${!t.repeat||t.repeat==='none'?'selected':''}>繰り返さない</option><option value="daily" ${t.repeat==='daily'?'selected':''}>毎日</option><option value="weekly" ${t.repeat==='weekly'?'selected':''}>毎週（開始日と同じ曜日）</option><option value="weekdays" ${t.repeat==='weekdays'?'selected':''}>平日のみ（月〜金）</option></select>
+ <div id="repeatUntil" style="display:${t.repeat&&t.repeat!=='none'?'block':'none'}"><label>繰り返し終了日（任意）</label><input name="until" type="date" value="${safe(t.until||'')}"><p class="note">空欄なら終了日なし。完了状態は日付ごとに保存されます。</p></div>
+ <label>参考書・ページ・メモ</label><textarea name="note" rows="3" placeholder="例：ターゲット1900 P.20〜25">${safe(t.note)}</textarea>
+ <div class="actions"><button class="primary" type="submit">保存する</button>${id?'<button class="danger" type="button" id="deleteTask">削除</button>':''}</div></form>`);
+ $('repeatSelect').onchange=e=>{$('repeatUntil').style.display=e.target.value==='none'?'none':'block'};
+ $('taskForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),obj={...t,id:id||uid(),title:String(f.get('title')).trim(),date:f.get('date'),time:f.get('time'),subject:f.get('subject'),note:String(f.get('note')).trim(),repeat:f.get('repeat'),until:f.get('repeat')==='none'?'':String(f.get('until')||''),doneDates:t.doneDates||[]};if(!obj.title)return;if(obj.until&&obj.until<obj.date){alert('終了日は開始日以降にしてください');return}if(id)data.tasks=data.tasks.map(v=>v.id===id?obj:v);else data.tasks.push(obj);selected=obj.date;[year,month]=[+selected.slice(0,4),+selected.slice(5,7)-1];save();closeSheet();tab='calendar';render()};
+ if(id)$('deleteTask').onclick=()=>{if(confirm('この予定を削除しますか？')){data.tasks=data.tasks.filter(v=>v.id!==id);save();closeSheet();render()}};
+}
+function bookForm(id){
+ const b=data.books.find(b=>b.id===id)||{name:'',subject:'英語',total:100,current:0};
+ openSheet(`<div class="row"><div class="heading">${id?'参考書を編集':'参考書を追加'}</div><button class="iconbtn" data-close>✕</button></div><form id="bookForm">
+ <label>参考書名 *</label><input name="name" required maxlength="100" placeholder="例：英単語ターゲット1900" value="${safe(b.name)}">
+ <label>科目</label><select name="subject">${opts(subjects,b.subject)}</select><div class="formrow"><div><label>総ページ数 *</label><input type="number" name="total" min="1" max="100000" required value="${b.total}"></div><div><label>現在のページ *</label><input type="number" name="current" min="0" max="100000" required value="${b.current}"></div></div>
+ <div class="actions"><button class="primary" type="submit">保存する</button>${id?'<button class="danger" type="button" id="deleteBook">削除</button>':''}</div></form>`);
+ $('bookForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),total=Number(f.get('total')),current=Number(f.get('current'));if(current>total){alert('現在のページ数は総ページ数以下にしてください');return}const obj={id:id||uid(),name:String(f.get('name')).trim(),subject:f.get('subject'),total,current};if(!obj.name)return;if(id)data.books=data.books.map(v=>v.id===id?obj:v);else data.books.push(obj);save();closeSheet();render()};
+ if(id)$('deleteBook').onclick=()=>{if(confirm('この参考書を削除しますか？')){data.books=data.books.filter(v=>v.id!==id);save();closeSheet();render()}};
+}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});
+$('todayBtn').onclick=()=>{selected=today();year=+selected.slice(0,4);month=+selected.slice(5,7)-1;tab='calendar';render()};
+if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+render();
+})();
+</script></body></html>
